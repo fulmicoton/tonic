@@ -1,5 +1,6 @@
 use super::compression::{decompress, CompressionEncoding};
 use super::{DecodeBuf, Decoder, DEFAULT_MAX_RECV_MESSAGE_SIZE, HEADER_SIZE};
+use crate::codec::shrink_large_bytes_mut;
 use crate::{body::BoxBody, metadata::MetadataMap, Code, Status};
 use bytes::{Buf, BufMut, BytesMut};
 use futures_core::Stream;
@@ -137,10 +138,12 @@ impl<T> Streaming<T> {
     }
 }
 
+
 impl StreamingInner {
     fn decode_chunk(&mut self) -> Result<Option<DecodeBuf<'_>>, Status> {
         if let State::ReadHeader = self.state {
             if self.buf.remaining() < HEADER_SIZE {
+                shrink_large_bytes_mut(&mut self.buf);
                 return Ok(None);
             }
 

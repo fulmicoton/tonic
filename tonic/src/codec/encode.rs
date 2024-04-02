@@ -1,5 +1,6 @@
 use super::compression::{compress, CompressionEncoding, SingleMessageCompressionOverride};
 use super::{EncodeBuf, Encoder, DEFAULT_MAX_SEND_MESSAGE_SIZE, HEADER_SIZE};
+use crate::codec::shrink_large_bytes_mut;
 use crate::{Code, Status};
 use bytes::{BufMut, Bytes, BytesMut};
 use futures_core::{Stream, TryStream};
@@ -163,7 +164,10 @@ fn finish_encoding(
         buf.put_u32(len as u32);
     }
 
-    Ok(buf.split_to(len + HEADER_SIZE).freeze())
+    let total_len = buf.len();
+    let res = buf.split_to(total_len).freeze();
+    shrink_large_bytes_mut(buf);
+    Ok(res)
 }
 
 #[derive(Debug)]

@@ -10,6 +10,8 @@ mod encode;
 #[cfg(feature = "prost")]
 mod prost;
 
+use bytes::{Buf, BufMut, BytesMut};
+
 use crate::Status;
 use std::io;
 
@@ -79,4 +81,14 @@ pub trait Decoder {
     /// is no need to get the length from the bytes, gRPC framing is handled
     /// for you.
     fn decode(&mut self, src: &mut DecodeBuf<'_>) -> Result<Option<Self::Item>, Self::Error>;
+}
+
+
+pub(crate) fn shrink_large_bytes_mut(buf: &mut BytesMut) {
+    if buf.capacity() < 200_000 || buf.len() > 8_000 {
+        return;
+    }
+    let mut new_buf = BytesMut::with_capacity(8_192);
+    new_buf.put_slice(buf.chunk());
+    *buf = new_buf;
 }
